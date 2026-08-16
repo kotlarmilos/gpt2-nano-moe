@@ -1,0 +1,14 @@
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+checkpoints/*.pt
+artifacts/*.json
+!artifacts/manifest.json
+!artifacts/smoke-train.json
+!artifacts/smoke-benchmark.json
+!artifacts/.gitkeep
+
+# Internal release checklist, not published
+SIGNOFF.md
