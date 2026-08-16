@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "measured": [
+    {
+      "path": "artifacts/smoke-train.json",
+      "sha256": "af61c813f622576f7b8b13ccf28ec7e8846d12809b4afe9d604e5d74c24aa79d",
+      "source": "scripts/smoke_train.sh",
+      "workload": "deterministic synthetic next-token training"
+    },
+    {
+      "path": "artifacts/smoke-benchmark.json",
+      "sha256": "548e50d701a39fb6a690dc204a69b6a5973002495fc6295f9282224b205fccc0",
+      "source": "scripts/smoke_benchmark.sh",
+      "workload": "seeded synthetic forward pass"
+    },
+    {
+      "path": "space/checkpoints/smoke.pt",
+      "sha256": "4dca8416a58ff68ae0bf6b412328613d8b4682a932848ef271241b40415de5ce",
+      "source": "scripts/smoke_train.sh",
+      "workload": "synthetic smoke model for the expert-routing Space only"
+    },
+    {
+      "path": "artifacts/routing-topk-fixed-capacity.json",
+      "sha256": "dc68b63f85e2478932e707a561de90b11fbab4027f225c682ae7500060908673",
+      "source": "gpt2-nano-moe-routing --config configs/routing_topk.toml --checkpoint checkpoints/smoke.pt",
+      "workload": "development-scale fixed-batch top-1 versus top-2 routing extension"
+    }
+  ],
+  "simulated": [],
+  "publication_inputs": {
+    "corpus": "data/train.bin",
+    "source": "https://huggingface.co/kotlarmilos/gpt2-nano/resolve/main/bpe-shards/train_000000.bin",
+    "sha256": "f08410ea036cc56b78ffc3f6edbf94f5a1d469aeb7c708bb56e4ce544623a69e",
+    "vocabulary_size": 9157
+  },
+  "pending": [
+    {
+      "config": "configs/publication.toml",
+      "result": "publication training run",
+      "reason": "No publication dataset or compute run was supplied."
+    },
+    {
+      "config": "configs/publication.toml",
+      "result": "publication dense versus MoE benchmark",
+      "reason": "The publication-scale benchmark has not been run."
+    }
+  ]
+}

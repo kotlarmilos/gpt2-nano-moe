@@ -1,0 +1,103 @@
+{
+  "checkpoints": {
+    "dense": null,
+    "moe": null
+  },
+  "config": {
+    "benchmark_iterations": 10,
+    "model": {
+      "architecture": "moe",
+      "auxiliary_loss_weight": 0.01,
+      "capacity_factor": 1.25,
+      "context_length": 16,
+      "d_model": 32,
+      "dropout": 0.0,
+      "expert_count": 4,
+      "mlp_multiplier": 2,
+      "num_heads": 4,
+      "num_layers": 2,
+      "vocab_size": 128
+    },
+    "train": {
+      "batch_size": 2,
+      "corpus_path": null,
+      "device": "cpu",
+      "learning_rate": 0.0003,
+      "log_every": 1,
+      "seed": 17,
+      "steps": 4,
+      "validation_fraction": 0.1,
+      "weight_decay": 0.01
+    }
+  },
+  "environment": {
+    "command": [
+      "src/gpt2_nano_moe/benchmark.py",
+      "--config",
+      "configs/smoke.toml",
+      "--iterations",
+      "10",
+      "--output",
+      "artifacts/smoke-benchmark.json"
+    ],
+    "cuda_available": false,
+    "device": "cpu",
+    "git_commit": null,
+    "machine": "arm64",
+    "mps_available": true,
+    "pid": 10282,
+    "platform": "macOS-26.5.2-arm64-arm-64bit-Mach-O",
+    "python": "3.13.3",
+    "pytorch": "2.13.0"
+  },
+  "measurements": {
+    "dense": {
+      "elapsed_seconds": 0.0033027080062311143,
+      "incremental_peak_memory_bytes": null,
+      "iterations": 10,
+      "parameter_counts": {
+        "active_per_token": 21760,
+        "total": 21760,
+        "trainable": 21760
+      },
+      "processed_tokens": 320,
+      "routing": {
+        "dropped_fraction": 0.0,
+        "dropped_tokens": 0,
+        "expert_counts": [],
+        "expert_utilization": null,
+        "router_entropy": null,
+        "token_assignments": 0
+      },
+      "tokens_per_second": 96890.18811117003
+    },
+    "moe": {
+      "elapsed_seconds": 0.009936374990502372,
+      "incremental_peak_memory_bytes": null,
+      "iterations": 10,
+      "parameter_counts": {
+        "active_per_token": 22016,
+        "total": 47168,
+        "trainable": 47168
+      },
+      "processed_tokens": 320,
+      "routing": {
+        "dropped_fraction": 0.0,
+        "dropped_tokens": 0,
+        "expert_counts": [
+          180,
+          180,
+          120,
+          160
+        ],
+        "expert_utilization": 1.0,
+        "router_entropy": 1.3811142444610596,
+        "token_assignments": 640
+      },
+      "tokens_per_second": 32204.903730572787
+    }
+  },
+  "result_kind": "measured",
+  "schema_version": 1,
+  "workload": "seeded_synthetic_forward_pass"
+}
