@@ -1,0 +1,23 @@
+[model]
+vocab_size = 9157
+context_length = 256
+d_model = 384
+num_heads = 6
+num_layers = 6
+mlp_multiplier = 4
+dropout = 0.0
+architecture = "moe"
+expert_count = 8
+capacity_factor = 1.25
+auxiliary_loss_weight = 0.01
+
+[train]
+seed = 17
+steps = 10000
+batch_size = 16
+learning_rate = 0.0003
+weight_decay = 0.1
+device = "auto"
+log_every = 100
+corpus_path = "data/train.bin"
+validation_fraction = 0.1
