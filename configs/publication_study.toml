@@ -3,7 +3,7 @@
 
 [model]
 vocab_size = 9157
-context_length = 256
+context_length = 128
 d_model = 384
 num_heads = 6
 num_layers = 6
@@ -15,20 +15,20 @@ auxiliary_loss_weight = 0.01
 
 [train]
 seed = 17
-steps = 3000
-batch_size = 16
+steps = 500
+batch_size = 4
 learning_rate = 0.0003
 weight_decay = 0.1
 device = "auto"
-log_every = 100
+log_every = 50
 corpus_path = "data/train.bin"
 validation_fraction = 0.1
 
 [study]
 seeds = [17, 42, 137]
-threshold_quantiles = [0.25, 0.5, 0.75]
+threshold_quantiles = [0.5]
 threshold_calibration_seed = 17
-threshold_calibration_batches = 16
+threshold_calibration_batches = 8
 base_capacity_factor = 1.25
 double_capacity_factor = 2.0
 validation_batches = 16
