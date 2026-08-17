@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from .config import ModelConfig, load_config
 from .metrics import aggregate_routing_metrics
 from .model import GPT, ModelOutput
-from .router import Top1Router, deterministic_capacity_mask, expert_capacity
+from .router import GeneralRouter, Top1Router, deterministic_capacity_mask, expert_capacity
 from .runtime import environment_metadata, seed_everything, select_device, synchronize
 from .train import _corpus_batch, _load_corpus
 
@@ -251,7 +251,7 @@ def _capture_probabilities(
     probability_layers: list[torch.Tensor] = []
     handles = []
     for module in model.modules():
-        if isinstance(module, Top1Router):
+        if isinstance(module, (Top1Router, GeneralRouter)):
             handles.append(
                 module.register_forward_hook(
                     lambda _module, _inputs, output: probability_layers.append(

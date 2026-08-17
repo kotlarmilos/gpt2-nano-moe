@@ -41,7 +41,21 @@ def _load_corpus(
     corpus_path = Path(path)
     if not corpus_path.is_file():
         raise FileNotFoundError(corpus_path)
-    tokens = np.fromfile(corpus_path, dtype="<u2")
+    header = np.fromfile(corpus_path, dtype="<i4", count=256)
+    if header.size != 256:
+        raise ValueError("corpus has a truncated shard header")
+    if int(header[0]) != 20250320 or int(header[1]) != 1:
+        raise ValueError("corpus has an unsupported shard header")
+    num_tokens = int(header[2])
+    expected_size = 256 * 4 + num_tokens * 2
+    if num_tokens < 1 or corpus_path.stat().st_size != expected_size:
+        raise ValueError("corpus size does not match its shard header")
+    tokens = np.fromfile(
+        corpus_path,
+        dtype="<u2",
+        count=num_tokens,
+        offset=256 * 4,
+    )
     if tokens.size < 2 * context_length:
         raise ValueError("corpus must contain at least two context windows")
     if int(tokens.max()) >= vocab_size:

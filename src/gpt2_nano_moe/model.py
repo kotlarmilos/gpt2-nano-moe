@@ -26,12 +26,14 @@ class ParameterCounts:
     total: int
     trainable: int
     active_per_token: int
+    active_per_token_is_upper_bound: bool = False
 
     def to_dict(self) -> dict[str, int]:
         return {
             "total": self.total,
             "trainable": self.trainable,
             "active_per_token": self.active_per_token,
+            "active_per_token_is_upper_bound": self.active_per_token_is_upper_bound,
         }
 
 
@@ -77,6 +79,8 @@ class TransformerBlock(nn.Module):
                 config.expert_count,
                 config.capacity_factor,
                 config.dropout,
+                config.routing_mode,
+                config.capsel_margin_threshold,
             )
         else:
             self.mlp = DenseMLP(config.d_model, hidden_size, config.dropout)
@@ -205,11 +209,27 @@ class GPT(nn.Module):
             parameter.numel() for parameter in self.parameters() if parameter.requires_grad
         )
         active = total
+        active_is_upper_bound = False
         for block in self.blocks:
             if isinstance(block.mlp, SparseMoE):
                 expert_sizes = [
                     sum(parameter.numel() for parameter in expert.parameters())
                     for expert in block.mlp.experts.experts
                 ]
-                active -= sum(expert_sizes) - expert_sizes[0]
-        return ParameterCounts(total=total, trainable=trainable, active_per_token=active)
+                active_experts = (
+                    2
+                    if block.mlp.routing_mode in ("top2_fixed", "top2_capsel")
+                    else 1
+                )
+                active -= sum(expert_sizes) - sum(
+                    expert_sizes[:active_experts]
+                )
+                active_is_upper_bound |= (
+                    block.mlp.routing_mode == "top2_capsel"
+                )
+        return ParameterCounts(
+            total=total,
+            trainable=trainable,
+            active_per_token=active,
+            active_per_token_is_upper_bound=active_is_upper_bound,
+        )

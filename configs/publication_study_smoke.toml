@@ -1,0 +1,30 @@
+# Publication study smoke config — runs fast on CPU with synthetic data.
+# Covers all five condition families with minimal steps and two seeds.
+
+[model]
+vocab_size = 32
+context_length = 8
+d_model = 16
+num_heads = 4
+num_layers = 2
+mlp_multiplier = 2
+dropout = 0.0
+architecture = "moe"
+expert_count = 4
+auxiliary_loss_weight = 0.01
+
+[train]
+seed = 17
+steps = 2
+batch_size = 2
+learning_rate = 0.0003
+weight_decay = 0.01
+device = "cpu"
+log_every = 1
+
+[study]
+seeds = [17, 42]
+threshold_grid = [0.1, 0.2]
+base_capacity_factor = 1.25
+double_capacity_factor = 2.0
+validation_batches = 2

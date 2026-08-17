@@ -6,6 +6,9 @@ from typing import Any, Literal, TypeVar
 import tomllib
 
 Architecture = Literal["dense", "moe"]
+RoutingMode = Literal["top1_fc", "top1_bpr", "top2_fixed", "top2_capsel"]
+
+_ROUTING_MODES: frozenset[str] = frozenset(("top1_fc", "top1_bpr", "top2_fixed", "top2_capsel"))
 
 
 @dataclass(frozen=True)
@@ -21,6 +24,8 @@ class ModelConfig:
     expert_count: int = 4
     capacity_factor: float = 1.25
     auxiliary_loss_weight: float = 0.01
+    routing_mode: RoutingMode = "top1_fc"
+    capsel_margin_threshold: float = 0.1
 
     def __post_init__(self) -> None:
         positive = {
@@ -45,6 +50,14 @@ class ModelConfig:
             raise ValueError("capacity_factor must be positive")
         if self.auxiliary_loss_weight < 0.0:
             raise ValueError("auxiliary_loss_weight must be non-negative")
+        if self.routing_mode not in _ROUTING_MODES:
+            raise ValueError(
+                f"routing_mode must be one of {sorted(_ROUTING_MODES)}"
+            )
+        if not 0.0 <= self.capsel_margin_threshold <= 1.0:
+            raise ValueError("capsel_margin_threshold must be in [0, 1]")
+        if self.routing_mode in ("top2_fixed", "top2_capsel") and self.expert_count < 2:
+            raise ValueError("top2 routing modes require expert_count >= 2")
 
 
 @dataclass(frozen=True)
@@ -90,7 +103,7 @@ def _construct(cls: type[T], values: dict[str, Any]) -> T:
 def load_config(path: str | Path) -> ExperimentConfig:
     with Path(path).open("rb") as handle:
         data = tomllib.load(handle)
-    unknown = set(data) - {"model", "train"}
+    unknown = set(data) - {"model", "train", "study"}  # study is optional, parsed directly
     if unknown:
         raise ValueError(f"unknown top-level config keys: {sorted(unknown)}")
     return ExperimentConfig(

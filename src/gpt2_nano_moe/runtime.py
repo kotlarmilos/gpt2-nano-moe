@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 import os
 from pathlib import Path
 import platform
@@ -42,6 +43,8 @@ def synchronize(device: torch.device) -> None:
 
 def environment_metadata(device: torch.device) -> dict[str, Any]:
     commit: str | None = None
+    git_dirty: bool | None = None
+    git_status_sha256: str | None = None
     root = Path(__file__).resolve().parents[2]
     try:
         result = subprocess.run(
@@ -52,6 +55,23 @@ def environment_metadata(device: torch.device) -> dict[str, Any]:
         )
         if result.returncode == 0:
             commit = result.stdout.strip()
+        status = subprocess.run(
+            [
+                "git",
+                "-C",
+                str(root),
+                "status",
+                "--porcelain",
+                "--untracked-files=all",
+            ],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if status.returncode == 0:
+            encoded_status = status.stdout.encode()
+            git_dirty = bool(encoded_status)
+            git_status_sha256 = hashlib.sha256(encoded_status).hexdigest()
     except OSError:
         pass
     return {
@@ -63,6 +83,8 @@ def environment_metadata(device: torch.device) -> dict[str, Any]:
         "cuda_available": torch.cuda.is_available(),
         "mps_available": torch.backends.mps.is_available(),
         "git_commit": commit,
+        "git_dirty": git_dirty,
+        "git_status_sha256": git_status_sha256,
         "pid": os.getpid(),
         "command": sys.argv,
     }

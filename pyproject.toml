@@ -19,6 +19,7 @@ space = ["gradio>=4.44,<6"]
 gpt2-nano-moe-train = "gpt2_nano_moe.train:main"
 gpt2-nano-moe-benchmark = "gpt2_nano_moe.benchmark:main"
 gpt2-nano-moe-routing = "gpt2_nano_moe.routing_study:main"
+gpt2-nano-moe-publication-study = "gpt2_nano_moe.publication_study:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
