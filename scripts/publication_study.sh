@@ -8,6 +8,7 @@ OUTPUT="${OUTPUT:-artifacts/publication-routing-study.json}"
 cd "$ROOT"
 
 export PYTHONHASHSEED="${PYTHONHASHSEED:-17}"
+export CUBLAS_WORKSPACE_CONFIG="${CUBLAS_WORKSPACE_CONFIG:-:4096:8}"
 
 "$PYTHON" -m gpt2_nano_moe.publication_study \
   --config configs/publication_study.toml \

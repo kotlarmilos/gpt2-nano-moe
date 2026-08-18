@@ -31,7 +31,21 @@ def seed_everything(seed: int) -> None:
     torch.manual_seed(seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(seed)
-    torch.use_deterministic_algorithms(True, warn_only=True)
+    torch.use_deterministic_algorithms(True)
+
+
+def configure_deterministic_execution(device: torch.device) -> None:
+    torch.use_deterministic_algorithms(True)
+    if device.type != "cuda":
+        return
+    if os.environ.get("CUBLAS_WORKSPACE_CONFIG") not in {":4096:8", ":16:8"}:
+        raise RuntimeError(
+            "CUDA publication runs require CUBLAS_WORKSPACE_CONFIG=:4096:8 "
+            "or CUBLAS_WORKSPACE_CONFIG=:16:8"
+        )
+    torch.backends.cuda.enable_flash_sdp(False)
+    torch.backends.cuda.enable_mem_efficient_sdp(False)
+    torch.backends.cuda.enable_math_sdp(True)
 
 
 def synchronize(device: torch.device) -> None:
@@ -85,6 +99,17 @@ def environment_metadata(device: torch.device) -> dict[str, Any]:
         "git_commit": commit,
         "git_dirty": git_dirty,
         "git_status_sha256": git_status_sha256,
+        "deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
+        "cublas_workspace_config": os.environ.get("CUBLAS_WORKSPACE_CONFIG"),
+        "cuda_sdp_backends": (
+            {
+                "flash": torch.backends.cuda.flash_sdp_enabled(),
+                "memory_efficient": torch.backends.cuda.mem_efficient_sdp_enabled(),
+                "math": torch.backends.cuda.math_sdp_enabled(),
+            }
+            if device.type == "cuda"
+            else None
+        ),
         "pid": os.getpid(),
         "command": sys.argv,
     }

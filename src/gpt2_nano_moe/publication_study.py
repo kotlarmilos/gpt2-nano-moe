@@ -24,7 +24,13 @@ from .config import ModelConfig, RoutingMode, TrainConfig, load_config
 from .metrics import aggregate_routing_metrics
 from .model import GPT
 from .routing_study import sha256
-from .runtime import environment_metadata, seed_everything, select_device, synchronize
+from .runtime import (
+    configure_deterministic_execution,
+    environment_metadata,
+    seed_everything,
+    select_device,
+    synchronize,
+)
 from .train import _batch, _corpus_batch, _load_corpus
 
 
@@ -377,6 +383,7 @@ def run(
     effective_corpus = corpus_path or experiment.train.corpus_path
 
     device = select_device(experiment.train.device)
+    configure_deterministic_execution(device)
     corpus: tuple | None = None
     if effective_corpus is not None:
         corpus = _load_corpus(
