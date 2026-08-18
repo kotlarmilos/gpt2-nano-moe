@@ -540,6 +540,7 @@ class PublicationStudyArtifactTests(unittest.TestCase):
             self.assertEqual(result["workload"], "publication_routing_study")
             self.assertTrue(result["environment"]["deterministic_algorithms"])
             self.assertIsNone(result["environment"]["cuda_sdp_backends"])
+            self.assertNotIn("cuda_device_name", result["environment"])
             self.assertTrue(result["identical_initialization_across_conditions"])
             # Conditions present.
             conditions = result["conditions"]

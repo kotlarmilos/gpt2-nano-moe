@@ -3,13 +3,13 @@
   "measured": [
     {
       "path": "artifacts/smoke-train.json",
-      "sha256": "af61c813f622576f7b8b13ccf28ec7e8846d12809b4afe9d604e5d74c24aa79d",
+      "sha256": "64e63c4aea7c5b50be3854363fa6bf0394aa7e723989933dbec0090645ff109d",
       "source": "scripts/smoke_train.sh",
       "workload": "deterministic synthetic next-token training"
     },
     {
       "path": "artifacts/smoke-benchmark.json",
-      "sha256": "548e50d701a39fb6a690dc204a69b6a5973002495fc6295f9282224b205fccc0",
+      "sha256": "f1b1d8a02ca098d4fa96271121f9069d612aeabafd935648288621817192e63f",
       "source": "scripts/smoke_benchmark.sh",
       "workload": "seeded synthetic forward pass"
     },
@@ -24,25 +24,35 @@
       "sha256": "dc68b63f85e2478932e707a561de90b11fbab4027f225c682ae7500060908673",
       "source": "gpt2-nano-moe-routing --config configs/routing_topk.toml --checkpoint checkpoints/smoke.pt",
       "workload": "development-scale fixed-batch top-1 versus top-2 routing extension"
+    },
+    {
+      "path": "artifacts/publication-routing-study.json",
+      "sha256": "e697a77ef687689115667bbc9e0c6a41985b942bb8fd23efa834941ab1bb7ce0",
+      "source": "scripts/publication_study.sh",
+      "config": "configs/publication_study.toml",
+      "config_sha256": "24d1b2f56188340cd52eb39b214d653b490bcc704bf161fdd299e527850ba0c3",
+      "corpus_source": "https://huggingface.co/kotlarmilos/gpt2-nano/resolve/ee547b4112bce2d2557dd0975038035bab6c86eb/bpe-shards/train_000000.bin",
+      "corpus_sha256": "f08410ea036cc56b78ffc3f6edbf94f5a1d469aeb7c708bb56e4ce544623a69e",
+      "workload": "deterministic three-seed capacity-aware routing study on an NVIDIA RTX A5000"
     }
   ],
   "simulated": [],
   "publication_inputs": {
     "corpus": "data/train.bin",
-    "source": "https://huggingface.co/kotlarmilos/gpt2-nano/resolve/main/bpe-shards/train_000000.bin",
+    "source": "https://huggingface.co/kotlarmilos/gpt2-nano/resolve/ee547b4112bce2d2557dd0975038035bab6c86eb/bpe-shards/train_000000.bin",
     "sha256": "f08410ea036cc56b78ffc3f6edbf94f5a1d469aeb7c708bb56e4ce544623a69e",
     "vocabulary_size": 9157
   },
   "pending": [
     {
       "config": "configs/publication.toml",
-      "result": "publication training run",
-      "reason": "No publication dataset or compute run was supplied."
+      "result": "separate dense versus MoE convergence training run",
+      "reason": "The measured routing extension uses configs/publication_study.toml and does not replace this separate convergence study."
     },
     {
       "config": "configs/publication.toml",
-      "result": "publication dense versus MoE benchmark",
-      "reason": "The publication-scale benchmark has not been run."
+      "result": "separate dense versus MoE throughput benchmark",
+      "reason": "The measured routing extension makes no throughput claim and does not replace this benchmark."
     }
   ]
 }

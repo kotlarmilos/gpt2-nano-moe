@@ -1,19 +1,19 @@
-# Adding sparse Mixture of Experts to a small transformer
+# Capacity-aware selective MoE routing
 
-This repository is a compact GPT-style decoder for studying the difference
-between a dense MLP and a top-1 sparse Mixture of Experts MLP. Attention stays
-unchanged. The MoE option replaces each block's MLP with a router and a
-configurable bank of experts.
+This repository is a compact GPT-style decoder for studying capacity-limited
+Mixture of Experts routing. It includes a matched three-seed comparison of top-1,
+fixed top-2, and capacity-aware selective top-2 routing.
 
 ## Included
 
-- Typed top-1 routing with deterministic token-order capacity admission
+- Typed top-1, batch-prioritized top-1, shared-capacity top-2, and CapSel-2 routing
 - Configurable expert count, capacity factor, and auxiliary loss weight
 - Dropped-token, router entropy, expert utilization, and expert count metrics
 - Explicit total, trainable, and active-per-token parameter counts
 - Matching dense and sparse model, training, generation, and benchmark APIs
 - CPU, MPS, and CUDA device selection
 - Seeded synthetic smoke workloads with environment metadata
+- Deterministic CUDA publication study with matched initialization and batches
 
 ## Setup
 
@@ -88,6 +88,19 @@ EXPERIMENT=train ARCHITECTURE=dense SEED=17 ./scripts/colab_publication.sh
 EXPERIMENT=train ARCHITECTURE=moe SEED=17 ./scripts/colab_publication.sh
 EXPERIMENT=benchmark ./scripts/colab_publication.sh
 ```
+
+Run the matched routing study with:
+
+```bash
+python scripts/prepare_publication_data.py
+./scripts/publication_study.sh
+```
+
+On the measured RTX A5000 run, CapSel-2 reduces mean zero-expert token drop from
+13.84 percent for fixed top-2 to 8.09 percent while requesting 15.4 percent fewer
+slots. The three-seed held-out loss spread is larger than the difference between
+the two policies, so this is a routing-capacity result rather than a language
+quality claim. See `artifacts/publication-routing-study.json`.
 
 ## Repository map
 

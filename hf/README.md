@@ -10,15 +10,15 @@ tags:
 
 # GPT2 Nano MoE
 
-This is the model card for the article project "Adding sparse Mixture of
-Experts to a small transformer."
+This is the model card for the article project "Rescuing dropped tokens in
+capacity-limited MoE routing."
 
 ## Model description
 
 The repository implements a small GPT-style causal decoder with interchangeable
-dense and sparse MLP blocks. The sparse block uses deterministic top-1 routing,
-per-expert capacity, a load-balancing auxiliary loss, and explicit routing
-metrics.
+dense and sparse MLP blocks. Sparse routing modes include token-order top-1,
+batch-prioritized top-1, shared-capacity fixed top-2, and capacity-aware selective
+top-2.
 
 MoE changes the MLP path only. Attention is identical in the dense and sparse
 variants.
@@ -30,8 +30,10 @@ benchmarks. It is not a pretrained production language model.
 
 ## Training data
 
-No publication model has been trained. Committed smoke results use seeded
-synthetic integer tokens and do not measure language quality.
+The publication study trains matched models for 500 steps on the verified
+FineWeb-Edu token shard. It does not select or distribute a trained checkpoint.
+Committed smoke checkpoints use synthetic integer tokens and remain limited to
+interface inspection.
 
 ## Metrics
 
@@ -48,8 +50,17 @@ and one seeded synthetic fixed batch to compare top-1 and top-2 routing at fixed
 per-expert capacity. Top-1 drops 6 of 256 routed slots. Top-2 drops 192 of 512
 routed slots and balances accepted counts exactly at the capacity cap.
 
+The measured RTX A5000 artifact is stored in
+`artifacts/publication-routing-study.json`. Across three seeds, CapSel-2 records
+8.09 percent mean zero-expert token drop versus 13.84 percent for fixed top-2 at
+the same capacity factor. It requests 15.4 percent fewer slots and rescues 58.27
+percent of rejected primaries. The held-out cross-entropy gap is smaller than the
+seed spread and does not establish a quality winner.
+
 ## Limitations
 
-The expert dispatch prioritizes readability over optimized kernels. The
-repository does not include a publication checkpoint. The Space includes only a
-clearly labeled four-step synthetic checkpoint for routing inspection.
+The expert dispatch prioritizes readability over optimized kernels. The study
+compares 500-step early training rather than converged models. Its uncertainty
+threshold is calibrated once at initialization and remains fixed. The repository
+does not include a publication checkpoint. The Space includes only a clearly
+labeled four-step synthetic checkpoint for routing inspection.

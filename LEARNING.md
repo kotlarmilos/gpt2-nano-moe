@@ -405,6 +405,58 @@ is the mechanism measured in `artifacts/routing-topk-fixed-capacity.json`, where
 top-1 drops 6 of 256 slots and top-2 drops 192 of 512 slots at per-expert
 capacity 40.
 
+## Capacity-aware selective top-2 routing
+
+The publication extension changes the optimization target from accepting as many
+slots as possible to covering tokens before adding optional work. Fixed top-2
+requests two expert slots for every token. Under one shared per-expert capacity,
+that rule can accept a second route for one token while another token receives no
+expert.
+
+CapSel-2 uses three ordered admissions.
+
+1. Admit primary experts with batch-prioritized routing.
+2. Route rejected primaries to their second-choice expert when capacity remains.
+3. Add a second expert for accepted-primary tokens only when their router margin is
+   below the calibrated uncertainty threshold.
+
+The accepted primary and secondary gates are renormalized over accepted routes.
+One accepted route therefore receives gate one. Two accepted routes share unit
+gate mass according to their original router probabilities.
+
+The token-level and slot-level objectives differ.
+
+```text
+token_drop = tokens with zero accepted routes / tokens
+slot_drop = rejected requested slots / requested slots
+effective_experts = accepted slots / tokens
+rescue_rate = rescued rejected primaries / rejected primaries
+```
+
+In the three-seed RTX A5000 study, fixed top-2 requests 98,304 final-validation
+slots per seed. CapSel-2 requests 83,150 on average because it does not ask for an
+optional second expert on every token. Fixed top-2 accepts 53,172 slots and leaves
+13.84 percent of tokens without an expert. CapSel-2 accepts 50,986 slots but
+leaves only 8.09 percent without an expert. Ordering scarce capacity around token
+coverage matters more than maximizing accepted slot count.
+
+CapSel-2 rescues 58.27 percent of rejected primary routes on average. Its effective
+expert count is 1.037 per token, compared with 1.082 for fixed top-2. The method
+therefore trades a small amount of extra-expert computation for fewer tokens that
+lose the complete expert path.
+
+The held-out cross-entropy means are 4.393 for CapSel-2 and 4.402 for fixed top-2.
+The mean gap is smaller than the seed spread and changes sign for one paired seed.
+This early-training run supports the routing mechanism but does not establish a
+language-quality improvement.
+
+`GeneralRouter._route_top2_capsel` in `src/gpt2_nano_moe/router.py` implements the
+three phases. `aggregate_routing_metrics` in
+`src/gpt2_nano_moe/metrics.py` pools rescue counts before computing the rescue
+rate. `src/gpt2_nano_moe/publication_study.py` calibrates the initial margin,
+recreates matched weights and batches, and evaluates sixteen held-out batches per
+seed.
+
 ## Expert parallelism
 
 ### Motivation

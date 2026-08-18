@@ -88,7 +88,7 @@ def environment_metadata(device: torch.device) -> dict[str, Any]:
             git_status_sha256 = hashlib.sha256(encoded_status).hexdigest()
     except OSError:
         pass
-    return {
+    result = {
         "python": platform.python_version(),
         "pytorch": torch.__version__,
         "platform": platform.platform(),
@@ -113,3 +113,7 @@ def environment_metadata(device: torch.device) -> dict[str, Any]:
         "pid": os.getpid(),
         "command": sys.argv,
     }
+    if device.type == "cuda":
+        result["cuda_device_name"] = torch.cuda.get_device_name(device)
+        result["cuda_version"] = torch.version.cuda
+    return result

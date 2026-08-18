@@ -8,7 +8,8 @@ import urllib.request
 
 
 SOURCE = (
-    "https://huggingface.co/kotlarmilos/gpt2-nano/resolve/main/"
+    "https://huggingface.co/kotlarmilos/gpt2-nano/resolve/"
+    "ee547b4112bce2d2557dd0975038035bab6c86eb/"
     "bpe-shards/train_000000.bin"
 )
 SHA256 = "f08410ea036cc56b78ffc3f6edbf94f5a1d469aeb7c708bb56e4ce544623a69e"
