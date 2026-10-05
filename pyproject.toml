@@ -5,20 +5,13 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gpt2-nano-moe"
 version = "0.1.0rc1"
-description = "An educational dense versus sparse MoE GPT implementation"
+description = "CapSel-2 routing experiment for a small GPT-style MoE model"
 readme = "README.md"
 requires-python = ">=3.11,<3.14"
-license = {file = "LICENSE"}
 authors = [{name = "Milos Kotlar"}]
 dependencies = ["numpy>=1.26", "torch>=2.2,<3"]
 
-[project.optional-dependencies]
-space = ["gradio>=4.44,<6"]
-
 [project.scripts]
-gpt2-nano-moe-train = "gpt2_nano_moe.train:main"
-gpt2-nano-moe-benchmark = "gpt2_nano_moe.benchmark:main"
-gpt2-nano-moe-routing = "gpt2_nano_moe.routing_study:main"
 gpt2-nano-moe-publication-study = "gpt2_nano_moe.publication_study:main"
 
 [tool.setuptools.packages.find]

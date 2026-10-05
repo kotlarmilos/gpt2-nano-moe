@@ -1,66 +1,44 @@
 ---
-license: mit
 library_name: pytorch
-pipeline_tag: text-generation
 tags:
   - mixture-of-experts
-  - educational
   - causal-language-model
+  - routing
 ---
 
-# GPT2 Nano MoE
+# CapSel-2 routing artifact
 
-This is the model card for the article project "Rescuing dropped tokens in
-capacity-limited MoE routing."
+This card accompanies the article "Reducing dropped tokens in a small MoE model"
+and the measured artifact in `artifacts/publication-routing-study.json`.
 
-## Model description
+## Result
 
-The repository implements a small GPT-style causal decoder with interchangeable
-dense and sparse MLP blocks. Sparse routing modes include token-order top-1,
-batch-prioritized top-1, shared-capacity fixed top-2, and capacity-aware selective
-top-2.
+CapSel-2 uses one shared per-expert capacity. It admits primary routes first,
+tries to rescue rejected primaries through their second choice, then uses
+remaining capacity for uncertain tokens that already have one accepted route.
 
-MoE changes the MLP path only. Attention is identical in the dense and sparse
-variants.
+Across three seeds on an NVIDIA RTX A5000, mean zero-expert token drop is 8.09%
+for CapSel-2 and 13.84% for fixed top-2 at the same capacity factor. CapSel-2
+requests 15.4% fewer slots and rescues 58.27% of rejected primaries.
 
 ## Intended use
 
-The code is intended for education, routing experiments, tests, and small local
-benchmarks. It is not a pretrained production language model.
+Use this repository to inspect or reproduce the measured routing experiment.
+It does not provide a selected pretrained checkpoint.
 
 ## Training data
 
-The publication study trains matched models for 500 steps on the verified
-FineWeb-Edu token shard. It does not select or distribute a trained checkpoint.
-Committed smoke checkpoints use synthetic integer tokens and remain limited to
-interface inspection.
-
-## Metrics
-
-Measured smoke outputs and complete environment metadata are stored in
-`artifacts/smoke-train.json` and `artifacts/smoke-benchmark.json`.
-`artifacts/manifest.json` distinguishes measured, simulated, and pending work.
-Training records language-model cross entropy separately from the auxiliary
-routing term and total optimization loss. Publication validation compares the
-language-model cross entropy on a deterministic held-out corpus split.
-
-A development-scale extension artifact is stored in
-`artifacts/routing-topk-fixed-capacity.json`. It reuses the smoke MoE checkpoint
-and one seeded synthetic fixed batch to compare top-1 and top-2 routing at fixed
-per-expert capacity. Top-1 drops 6 of 256 routed slots. Top-2 drops 192 of 512
-routed slots and balances accepted counts exactly at the capacity cap.
-
-The measured RTX A5000 artifact is stored in
-`artifacts/publication-routing-study.json`. Across three seeds, CapSel-2 records
-8.09 percent mean zero-expert token drop versus 13.84 percent for fixed top-2 at
-the same capacity factor. It requests 15.4 percent fewer slots and rescues 58.27
-percent of rejected primaries. The held-out cross-entropy gap is smaller than the
-seed spread and does not establish a quality winner.
+The study uses the verified FineWeb-Edu token shard recorded in
+`artifacts/manifest.json`. Each condition trains for 500 steps and uses the same
+initialization and batches within each seed.
 
 ## Limitations
 
-The expert dispatch prioritizes readability over optimized kernels. The study
-compares 500-step early training rather than converged models. Its uncertainty
-threshold is calibrated once at initialization and remains fixed. The repository
-does not include a publication checkpoint. The Space includes only a clearly
-labeled four-step synthetic checkpoint for routing inspection.
+The held-out cross-entropy difference is 0.0089 in favor of CapSel-2 on the
+three-seed mean, but it is smaller than the seed spread and changes sign for one
+seed. The study does not establish a quality winner. Requested slots are not
+latency measurements. The uncertainty threshold is calibrated once at
+initialization and stays fixed.
+
+The implementation is available at
+`https://github.com/kotlarmilos/gpt2-nano-moe`.

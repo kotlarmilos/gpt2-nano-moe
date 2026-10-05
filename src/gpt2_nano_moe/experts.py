@@ -3,7 +3,19 @@ from __future__ import annotations
 import torch
 from torch import nn
 
-from .dense import DenseMLP
+
+class ExpertMLP(nn.Module):
+    def __init__(self, d_model: int, hidden_size: int, dropout: float = 0.0) -> None:
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(d_model, hidden_size),
+            nn.GELU(),
+            nn.Linear(hidden_size, d_model),
+            nn.Dropout(dropout),
+        )
+
+    def forward(self, inputs: torch.Tensor) -> torch.Tensor:
+        return self.net(inputs)
 
 
 class Experts(nn.Module):
@@ -12,7 +24,7 @@ class Experts(nn.Module):
     ) -> None:
         super().__init__()
         self.experts = nn.ModuleList(
-            DenseMLP(d_model, hidden_size, dropout) for _ in range(expert_count)
+            ExpertMLP(d_model, hidden_size, dropout) for _ in range(expert_count)
         )
 
     def forward(
@@ -35,17 +47,7 @@ class Experts(nn.Module):
         accepted: torch.Tensor,
         gates: torch.Tensor,
     ) -> torch.Tensor:
-        """Dispatch tokens to multiple expert slots and combine with normalized gates.
-
-        Args:
-            inputs: [T, d_model]
-            expert_indices: [T, k] integer expert assignments
-            accepted: [T, k] bool mask of admitted slots
-            gates: [T, k] float normalized gate weights (sum to 1 per token over accepted slots)
-
-        Returns:
-            [T, d_model] combined expert output (zero for completely unrouted tokens)
-        """
+        """Dispatch accepted slots and combine their normalized gate weights."""
         output = torch.zeros_like(inputs)
         _T, k = expert_indices.shape
         for slot in range(k):
@@ -59,4 +61,3 @@ class Experts(nn.Module):
                         expert(inputs[selected]) * slot_gates[selected].unsqueeze(-1)
                     )
         return output
-

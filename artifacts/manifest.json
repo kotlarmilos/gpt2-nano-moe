@@ -1,58 +1,19 @@
 {
-  "schema_version": 1,
-  "measured": [
-    {
-      "path": "artifacts/smoke-train.json",
-      "sha256": "64e63c4aea7c5b50be3854363fa6bf0394aa7e723989933dbec0090645ff109d",
-      "source": "scripts/smoke_train.sh",
-      "workload": "deterministic synthetic next-token training"
-    },
-    {
-      "path": "artifacts/smoke-benchmark.json",
-      "sha256": "f1b1d8a02ca098d4fa96271121f9069d612aeabafd935648288621817192e63f",
-      "source": "scripts/smoke_benchmark.sh",
-      "workload": "seeded synthetic forward pass"
-    },
-    {
-      "path": "space/checkpoints/smoke.pt",
-      "sha256": "4dca8416a58ff68ae0bf6b412328613d8b4682a932848ef271241b40415de5ce",
-      "source": "scripts/smoke_train.sh",
-      "workload": "synthetic smoke model for the expert-routing Space only"
-    },
-    {
-      "path": "artifacts/routing-topk-fixed-capacity.json",
-      "sha256": "dc68b63f85e2478932e707a561de90b11fbab4027f225c682ae7500060908673",
-      "source": "gpt2-nano-moe-routing --config configs/routing_topk.toml --checkpoint checkpoints/smoke.pt",
-      "workload": "development-scale fixed-batch top-1 versus top-2 routing extension"
-    },
-    {
-      "path": "artifacts/publication-routing-study.json",
-      "sha256": "e697a77ef687689115667bbc9e0c6a41985b942bb8fd23efa834941ab1bb7ce0",
-      "source": "scripts/publication_study.sh",
-      "config": "configs/publication_study.toml",
-      "config_sha256": "24d1b2f56188340cd52eb39b214d653b490bcc704bf161fdd299e527850ba0c3",
-      "corpus_source": "https://huggingface.co/kotlarmilos/gpt2-nano/resolve/ee547b4112bce2d2557dd0975038035bab6c86eb/bpe-shards/train_000000.bin",
-      "corpus_sha256": "f08410ea036cc56b78ffc3f6edbf94f5a1d469aeb7c708bb56e4ce544623a69e",
-      "workload": "deterministic three-seed capacity-aware routing study on an NVIDIA RTX A5000"
-    }
-  ],
-  "simulated": [],
-  "publication_inputs": {
-    "corpus": "data/train.bin",
+  "schema_version": 2,
+  "measured": {
+    "path": "artifacts/publication-routing-study.json",
+    "sha256": "e697a77ef687689115667bbc9e0c6a41985b942bb8fd23efa834941ab1bb7ce0",
+    "config": "configs/publication_study.toml",
+    "config_sha256": "24d1b2f56188340cd52eb39b214d653b490bcc704bf161fdd299e527850ba0c3",
+    "source_commit": "3522c79fe58cb46c1cd7dc7b090408480bcbff43",
+    "hardware": "NVIDIA RTX A5000",
+    "workload": "deterministic three-seed CapSel-2 routing study"
+  },
+  "publication_input": {
+    "path": "data/train.bin",
     "source": "https://huggingface.co/kotlarmilos/gpt2-nano/resolve/ee547b4112bce2d2557dd0975038035bab6c86eb/bpe-shards/train_000000.bin",
     "sha256": "f08410ea036cc56b78ffc3f6edbf94f5a1d469aeb7c708bb56e4ce544623a69e",
+    "format": "FineWeb-Edu uint16 token shard",
     "vocabulary_size": 9157
-  },
-  "pending": [
-    {
-      "config": "configs/publication.toml",
-      "result": "separate dense versus MoE convergence training run",
-      "reason": "The measured routing extension uses configs/publication_study.toml and does not replace this separate convergence study."
-    },
-    {
-      "config": "configs/publication.toml",
-      "result": "separate dense versus MoE throughput benchmark",
-      "reason": "The measured routing extension makes no throughput claim and does not replace this benchmark."
-    }
-  ]
+  }
 }

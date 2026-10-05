@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import asdict, dataclass
+from dataclasses import dataclass, fields
 from typing import Any
 
 import torch
@@ -27,15 +27,20 @@ class RoutingMetrics:
     rejected_primary_tokens: int | None = None
 
     @property
-    def dropped_fraction(self) -> float:
+    def token_drop_fraction(self) -> float:
         return self.dropped_tokens / max(self.tokens, 1)
 
+    @property
+    def dropped_fraction(self) -> float:
+        return self.token_drop_fraction
+
     def to_dict(self) -> dict[str, Any]:
-        result = asdict(self)
+        result = {field.name: getattr(self, field.name) for field in fields(self)}
         result["expert_counts"] = self.expert_counts.detach().cpu().tolist()
         result["router_entropy"] = float(self.router_entropy.detach().cpu())
         result["expert_utilization"] = float(self.expert_utilization.detach().cpu())
-        result["dropped_fraction"] = self.dropped_fraction
+        result["token_drop_fraction"] = self.token_drop_fraction
+        result["dropped_fraction"] = self.token_drop_fraction
         return result
 
 
@@ -48,6 +53,7 @@ def aggregate_routing_metrics(metrics: tuple[RoutingMetrics, ...]) -> dict[str, 
         return {
             "token_assignments": 0,
             "dropped_tokens": 0,
+            "token_drop_fraction": 0.0,
             "dropped_fraction": 0.0,
             "expert_counts": [],
             "router_entropy": None,
@@ -86,10 +92,12 @@ def aggregate_routing_metrics(metrics: tuple[RoutingMetrics, ...]) -> dict[str, 
     rejected_primary = (
         sum(rejected_primary_list) if rejected_primary_list else None
     )
+    token_drop_fraction = dropped / max(tokens, 1)
     return {
         "token_assignments": tokens,
         "dropped_tokens": dropped,
-        "dropped_fraction": dropped / max(tokens, 1),
+        "token_drop_fraction": token_drop_fraction,
+        "dropped_fraction": token_drop_fraction,
         "expert_counts": expert_counts.tolist(),
         "router_entropy": sum(float(item.router_entropy.detach().cpu()) for item in metrics)
         / len(metrics),

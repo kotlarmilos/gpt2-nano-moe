@@ -1,10 +1,9 @@
-"""Publication routing study: matched multi-condition training comparison.
+"""Run the matched publication routing study.
 
-Trains identical-weight models under top1_fc (CF1.25), top1_bpr (CF1.25),
-top2_fixed (CF1.25), top1_fc (CF2.0), and top2_capsel (CF1.25 × threshold grid),
-each from the same initial weights and same token batches, across multiple seeds.
-
-All results are written to a single JSON artifact with full provenance.
+CapSel-2 uses one shared per-expert capacity for score-prioritized primaries,
+rescues rejected primaries next, then admits optional routes for uncertain
+covered tokens. Every condition in a seed uses the same initial weights and
+token batches. Results are written to one JSON artifact with provenance.
 """
 from __future__ import annotations
 
@@ -21,9 +20,9 @@ import torch
 import torch.nn.functional as F
 
 from .config import ModelConfig, RoutingMode, TrainConfig, load_config
+from .data import corpus_batch, load_corpus, synthetic_batch
 from .metrics import aggregate_routing_metrics
 from .model import GPT
-from .routing_study import sha256
 from .runtime import (
     configure_deterministic_execution,
     environment_metadata,
@@ -31,7 +30,14 @@ from .runtime import (
     select_device,
     synchronize,
 )
-from .train import _batch, _corpus_batch, _load_corpus
+
+
+def sha256(path: str | Path) -> str:
+    digest = hashlib.sha256()
+    with Path(path).open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -137,7 +143,7 @@ def _calibrate_margin_thresholds(
     try:
         for _ in range(batches):
             if corpus is None:
-                token_ids = _batch(
+                token_ids = synthetic_batch(
                     train_cfg.batch_size,
                     model_config.context_length,
                     model_config.vocab_size,
@@ -145,7 +151,7 @@ def _calibrate_margin_thresholds(
                     device,
                 )
             else:
-                token_ids = _corpus_batch(
+                token_ids = corpus_batch(
                     corpus[0],
                     train_cfg.batch_size,
                     model_config.context_length,
@@ -204,7 +210,7 @@ def _train_condition(
     model.train()
     for step in range(1, train_cfg.steps + 1):
         if corpus is None:
-            token_ids = _batch(
+            token_ids = synthetic_batch(
                 train_cfg.batch_size,
                 model_config.context_length,
                 model_config.vocab_size,
@@ -212,7 +218,7 @@ def _train_condition(
                 device,
             )
         else:
-            token_ids = _corpus_batch(
+            token_ids = corpus_batch(
                 corpus[0],
                 train_cfg.batch_size,
                 model_config.context_length,
@@ -234,7 +240,7 @@ def _train_condition(
             if corpus is not None:
                 model.eval()
                 with torch.no_grad():
-                    val_tokens = _corpus_batch(
+                    val_tokens = corpus_batch(
                         corpus[1],
                         train_cfg.batch_size,
                         model_config.context_length,
@@ -269,7 +275,7 @@ def _train_condition(
     with torch.no_grad():
         for _ in range(validation_batches):
             if corpus is None:
-                val_tokens = _batch(
+                val_tokens = synthetic_batch(
                     train_cfg.batch_size,
                     model_config.context_length,
                     model_config.vocab_size,
@@ -277,7 +283,7 @@ def _train_condition(
                     device,
                 )
             else:
-                val_tokens = _corpus_batch(
+                val_tokens = corpus_batch(
                     corpus[1],
                     train_cfg.batch_size,
                     model_config.context_length,
@@ -386,7 +392,7 @@ def run(
     configure_deterministic_execution(device)
     corpus: tuple | None = None
     if effective_corpus is not None:
-        corpus = _load_corpus(
+        corpus = load_corpus(
             effective_corpus,
             vocab_size=experiment.model.vocab_size,
             context_length=experiment.model.context_length,

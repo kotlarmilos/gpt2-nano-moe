@@ -5,7 +5,6 @@ from pathlib import Path
 from typing import Any, Literal, TypeVar
 import tomllib
 
-Architecture = Literal["dense", "moe"]
 RoutingMode = Literal["top1_fc", "top1_bpr", "top2_fixed", "top2_capsel"]
 
 _ROUTING_MODES: frozenset[str] = frozenset(("top1_fc", "top1_bpr", "top2_fixed", "top2_capsel"))
@@ -20,7 +19,7 @@ class ModelConfig:
     num_layers: int = 4
     mlp_multiplier: int = 4
     dropout: float = 0.0
-    architecture: Architecture = "moe"
+    architecture: Literal["moe"] = "moe"
     expert_count: int = 4
     capacity_factor: float = 1.25
     auxiliary_loss_weight: float = 0.01
@@ -42,8 +41,8 @@ class ModelConfig:
                 raise ValueError(f"{name} must be positive")
         if self.d_model % self.num_heads:
             raise ValueError("d_model must be divisible by num_heads")
-        if self.architecture not in ("dense", "moe"):
-            raise ValueError("architecture must be 'dense' or 'moe'")
+        if self.architecture != "moe":
+            raise ValueError("architecture must be 'moe'")
         if not 0.0 <= self.dropout < 1.0:
             raise ValueError("dropout must be in [0, 1)")
         if self.capacity_factor <= 0.0:

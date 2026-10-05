@@ -208,10 +208,12 @@ def _build_multi_metrics(
 
 
 class GeneralRouter(nn.Module):
-    """Router supporting top1_bpr, top2_fixed, and top2_capsel modes.
+    """Route with score-prioritized admission and one capacity per expert.
 
-    Returns RouterOutput with 1D expert_indices/gates/accepted for top1_bpr and
-    2D [T, 2] tensors for top2_fixed and top2_capsel.
+    Fixed top-2 admits primary requests, then all second-choice requests.
+    CapSel-2 admits primary requests, rescue requests for rejected primaries,
+    then optional second routes for uncertain accepted primaries. Every pass
+    consumes the same per-expert capacity.
     """
 
     def __init__(
@@ -302,9 +304,7 @@ class GeneralRouter(nn.Module):
         e1 = top2_idx[:, 0]
         e2 = top2_idx[:, 1]
 
-        # GShard-style deterministic admission uses one shared per-expert
-        # capacity. Primary assignments are admitted before second choices, and
-        # second choices can only consume the capacity that remains.
+        # Primary requests and all second-choice requests share one capacity.
         primary_accepted = score_prioritized_capacity_mask(
             e1, top2_probs[:, 0].detach(), E, capacity
         )
@@ -357,15 +357,14 @@ class GeneralRouter(nn.Module):
         e2 = top2_idx[:, 1]
         margin = (p1 - p2).detach()
 
-        # --- Phase 1: BPR primary admission ---
+        # Pass 1: admit primary requests by router score.
         primary_accepted = score_prioritized_capacity_mask(e1, p1.detach(), E, capacity)
 
-        # Track expert fill after Phase 1.
         expert_fill = torch.zeros(E, dtype=torch.long, device=dev)
         if primary_accepted.any():
             expert_fill.add_(torch.bincount(e1[primary_accepted], minlength=E))
 
-        # --- Phase 2: Rescue rejected primaries into their second-choice expert ---
+        # Pass 2: rescue rejected primaries through their second-choice expert.
         rejected_indices = (~primary_accepted).nonzero(as_tuple=False).squeeze(1)
         R = rejected_indices.shape[0]
         if R > 0:
@@ -387,7 +386,7 @@ class GeneralRouter(nn.Module):
         if rescue_accepted.any():
             expert_fill.add_(torch.bincount(e2[rescue_accepted], minlength=E))
 
-        # --- Phase 3: Optional second expert for uncertain accepted-primary tokens ---
+        # Pass 3: use remaining capacity for optional routes, most uncertain first.
         uncertain_mask = primary_accepted & margin.lt(self.margin_threshold)
         uncertain_indices = uncertain_mask.nonzero(as_tuple=False).squeeze(1)
         U = uncertain_indices.shape[0]
@@ -400,25 +399,25 @@ class GeneralRouter(nn.Module):
             cumcount_u = one_hot_u.cumsum(dim=0)
             token_cumcount_u = (one_hot_u * cumcount_u).sum(dim=-1)
             remaining_u = (capacity - expert_fill[sorted_e2_u]).clamp_min(0)
-            sorted_secondary = token_cumcount_u.le(remaining_u)
-            secondary_accepted = torch.zeros(T, dtype=torch.bool, device=dev)
-            if sorted_secondary.any():
-                secondary_accepted[sorted_uncertain[sorted_secondary]] = True
+            sorted_optional = token_cumcount_u.le(remaining_u)
+            optional_accepted = torch.zeros(T, dtype=torch.bool, device=dev)
+            if sorted_optional.any():
+                optional_accepted[sorted_uncertain[sorted_optional]] = True
         else:
-            secondary_accepted = torch.zeros(T, dtype=torch.bool, device=dev)
+            optional_accepted = torch.zeros(T, dtype=torch.bool, device=dev)
 
-        # Slot 0 = primary expert; slot 1 = secondary (rescue or uncertain second).
-        slot1_accepted = rescue_accepted | secondary_accepted
+        # Slot 1 is the second-choice expert used for rescue or an optional route.
+        slot1_accepted = rescue_accepted | optional_accepted
         accepted_2d = torch.stack([primary_accepted, slot1_accepted], dim=1)
         gates_2d = _normalize_gates_over_accepted(top2_probs, accepted_2d)
         aux = _auxiliary_loss(probabilities, e1, E)
         uncertainty_rate = float(margin.lt(self.margin_threshold).float().mean().item())
         rescue_rate = float(rescue_accepted.float().sum().item()) / max(R, 1)
-        secondary_requested = (~primary_accepted) | uncertain_mask
+        second_route_requested = (~primary_accepted) | uncertain_mask
         extra = {
             "uncertainty_rate": uncertainty_rate,
             "rescue_rate": rescue_rate,
-            "routed_slots": T + int(secondary_requested.sum().item()),
+            "routed_slots": T + int(second_route_requested.sum().item()),
             "rescued_tokens": int(rescue_accepted.sum().item()),
             "rejected_primary_tokens": R,
         }

@@ -23,13 +23,20 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def verify(path: Path, expected: str = SHA256) -> bool:
+    return path.is_file() and sha256(path) == expected
+
+
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--output", type=Path, default=Path("data/train.bin"))
+    parser.add_argument("--verify-only", action="store_true")
     args = parser.parse_args()
-    if args.output.is_file() and sha256(args.output) == SHA256:
+    if verify(args.output):
         print(f"verified {args.output}")
         return
+    if args.verify_only:
+        raise ValueError(f"{args.output} is missing or failed SHA-256 verification")
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     temporary = args.output.with_suffix(args.output.suffix + ".part")
@@ -41,7 +48,7 @@ def main() -> None:
         os.replace(temporary, args.output)
     finally:
         temporary.unlink(missing_ok=True)
-    if sha256(args.output) != SHA256:
+    if not verify(args.output):
         args.output.unlink(missing_ok=True)
         raise ValueError("downloaded corpus failed SHA-256 verification")
     print(f"downloaded and verified {args.output}")
